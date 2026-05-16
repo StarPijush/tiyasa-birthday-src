@@ -41,6 +41,7 @@ function Memory({ memory, index }) {
 
   return (
     <motion.section
+      className="gpu-layer"
       initial={{ opacity: 0, y: 42, filter: 'blur(10px)' }}
       whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       viewport={{ once: true, margin: '-18%' }}
@@ -153,7 +154,7 @@ export default function Story() {
 
   return (
     <motion.div
-      className="page"
+      className="page gpu-layer"
       variants={pageVariants}
       initial="initial"
       animate="animate"

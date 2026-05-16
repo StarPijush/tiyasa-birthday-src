@@ -17,7 +17,7 @@ export default function Final() {
 
   return (
     <motion.div
-      className="page"
+      className="page gpu-layer"
       variants={pageVariants}
       initial="initial"
       animate="animate"

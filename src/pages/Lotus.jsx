@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pageVariants } from './variants';
@@ -10,6 +10,12 @@ const REVEAL_TEXT = [
   { text: 'you do.', style: 'highlight', delay: 4500 },
 ];
 
+function getFontSize(line) {
+  if (line.style === 'heading') return 'clamp(2rem, 7vw, 2.8rem)';
+  if (line.style === 'highlight') return 'clamp(1.1rem, 4vw, 1.4rem)';
+  return 'clamp(0.95rem, 3.2vw, 1.15rem)';
+}
+
 export default function Lotus() {
   const navigate = useNavigate();
   const [isHolding, setIsHolding] = useState(false);
@@ -18,21 +24,36 @@ export default function Lotus() {
   const [showButton, setShowButton] = useState(false);
   const [showFloatingHearts, setShowFloatingHearts] = useState(false);
 
-  const handleComplete = useCallback(() => {
-    setHeartFormed(true);
-
-    // Stagger the text reveals
+  const triggerStaggeredReveals = useCallback(() => {
     REVEAL_TEXT.forEach((line, i) => {
-      setTimeout(() => {
+      globalThis.setTimeout(() => {
         setShownLines(prev => [...prev, i]);
       }, line.delay);
     });
-
-    // After all text, show floating hearts + button
-    const lastDelay = REVEAL_TEXT[REVEAL_TEXT.length - 1].delay;
-    setTimeout(() => setShowFloatingHearts(true), lastDelay + 2000);
-    setTimeout(() => setShowButton(true), lastDelay + 3500);
   }, []);
+
+  const handleComplete = useCallback(() => {
+    setHeartFormed(true);
+    // Add small delay to let hint text fade out completely
+    globalThis.setTimeout(() => {
+      triggerStaggeredReveals();
+    }, 1000);
+
+    const lastDelay = REVEAL_TEXT.at(-1).delay;
+    globalThis.setTimeout(() => setShowFloatingHearts(true), lastDelay + 3000);
+    globalThis.setTimeout(() => setShowButton(true), lastDelay + 4500);
+  }, [triggerStaggeredReveals]);
+
+  const heartElements = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
+    id: `floating-heart-${i}`,
+    left: `${30 + Math.random() * 40}%`,
+    top: `${35 + Math.random() * 15}%`,
+    fontSize: `${8 + Math.random() * 8}px`,
+    yDist: -(80 + Math.random() * 200),
+    xDist: (Math.random() - 0.5) * 100,
+    duration: 4 + Math.random() * 3,
+    delay: Math.random() * 4
+  })), []);
 
   return (
     <motion.div
@@ -52,16 +73,13 @@ export default function Lotus() {
         overflow: 'hidden',
       }}
     >
-      {/* Background atmosphere */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 0,
         background: 'radial-gradient(circle at 50% 40%, rgba(35,12,25,0.9) 0%, #07030d 100%)',
       }} />
 
-      {/* Film grain */}
       <div className="grain-overlay" style={{ opacity: 0.03, position: 'fixed' }} />
 
-      {/* Vignette */}
       <motion.div
         animate={{ opacity: isHolding ? 0.85 : 0.65 }}
         transition={{ duration: 1.5 }}
@@ -71,7 +89,6 @@ export default function Lotus() {
         }}
       />
 
-      {/* Soft fog layer */}
       <motion.div
         animate={{
           opacity: [0.04, 0.09, 0.04],
@@ -88,29 +105,30 @@ export default function Lotus() {
         }}
       />
 
-      {/* Canvas particle system */}
       <ParticleHeart
         onComplete={handleComplete}
         onHoldChange={setIsHolding}
       />
 
-      {/* Hold prompt */}
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {!heartFormed && (
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{
-              opacity: isHolding ? 0 : [0.3, 0.55, 0.3],
-              y: 0,
+            key="hold-hint"
+            variants={{
+              initial: { opacity: 0, y: 10 },
+              pulse: { 
+                opacity: [0.3, 0.55, 0.3],
+                transition: { opacity: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } }
+              },
+              hidden: { opacity: 0 },
+              exit: { opacity: 0, y: -10, transition: { duration: 0.8 } }
             }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{
-              opacity: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' },
-              y: { duration: 1 }
-            }}
+            initial="initial"
+            animate={isHolding ? "hidden" : "pulse"}
+            exit="exit"
             style={{
               position: 'absolute',
-              bottom: '28%',
+              bottom: '23%',
               zIndex: 10,
               color: '#f5c6d6',
               fontFamily: "'Playfair Display', serif",
@@ -126,17 +144,18 @@ export default function Lotus() {
         )}
       </AnimatePresence>
 
-      {/* Text reveal */}
       <div style={{
         position: 'absolute',
-        bottom: '16%',
+        bottom: '8%',
         zIndex: 10,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: '0.8rem',
         pointerEvents: 'none',
-        padding: '0 24px',
+        padding: '24px 32px',
+        background: 'radial-gradient(circle, rgba(7,3,13,0.6) 0%, transparent 80%)',
+        borderRadius: '40px',
       }}>
         <AnimatePresence>
           {shownLines.map((idx) => {
@@ -146,7 +165,7 @@ export default function Lotus() {
 
             return (
               <motion.p
-                key={idx}
+                key={`line-${idx}`}
                 initial={{ opacity: 0, y: 15, filter: 'blur(12px)' }}
                 animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
@@ -154,11 +173,7 @@ export default function Lotus() {
                   fontFamily: isHeading || isHighlight
                     ? "'Playfair Display', serif"
                     : 'Inter, sans-serif',
-                  fontSize: isHeading
-                    ? 'clamp(2rem, 7vw, 2.8rem)'
-                    : isHighlight
-                      ? 'clamp(1.1rem, 4vw, 1.4rem)'
-                      : 'clamp(0.95rem, 3.2vw, 1.15rem)',
+                  fontSize: getFontSize(line),
                   fontStyle: 'italic',
                   fontWeight: isHeading ? '400' : '300',
                   color: '#f5c6d6',
@@ -177,33 +192,16 @@ export default function Lotus() {
         </AnimatePresence>
       </div>
 
-      {/* Floating hearts after reveal */}
       <AnimatePresence>
         {showFloatingHearts && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 6, pointerEvents: 'none' }}>
-            {[...Array(12)].map((_, i) => (
+            {heartElements.map((h) => (
               <motion.div
-                key={i}
+                key={h.id}
                 initial={{ opacity: 0, y: 0, x: 0 }}
-                animate={{
-                  opacity: [0, 0.4, 0],
-                  y: -(80 + Math.random() * 200),
-                  x: (Math.random() - 0.5) * 100,
-                }}
-                transition={{
-                  duration: 4 + Math.random() * 3,
-                  repeat: Infinity,
-                  delay: Math.random() * 4,
-                  ease: 'easeOut',
-                }}
-                style={{
-                  position: 'absolute',
-                  left: `${30 + Math.random() * 40}%`,
-                  top: `${35 + Math.random() * 15}%`,
-                  fontSize: `${8 + Math.random() * 8}px`,
-                  color: '#f5c6d6',
-                  textShadow: '0 0 8px rgba(245,198,214,0.5)',
-                }}
+                animate={{ opacity: [0, 0.4, 0], y: h.yDist, x: h.xDist }}
+                transition={{ duration: h.duration, repeat: Infinity, delay: h.delay, ease: 'easeOut' }}
+                style={{ position: 'absolute', left: h.left, top: h.top, fontSize: h.fontSize, color: '#f5c6d6', textShadow: '0 0 8px rgba(245,198,214,0.5)' }}
               >
                 ♥
               </motion.div>
@@ -212,7 +210,6 @@ export default function Lotus() {
         )}
       </AnimatePresence>
 
-      {/* Screen warmth pulse */}
       <AnimatePresence>
         {showFloatingHearts && (
           <motion.div
@@ -228,34 +225,20 @@ export default function Lotus() {
         )}
       </AnimatePresence>
 
-      {/* Final button */}
       <AnimatePresence>
         {showButton && (
           <motion.div
             initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             transition={{ duration: 2, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              position: 'absolute',
-              bottom: '6%',
-              zIndex: 10,
-            }}
+            style={{ position: 'absolute', bottom: '2%', zIndex: 10 }}
           >
             <motion.button
               whileHover={{ scale: 1.05, y: -3 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/final')}
               className="glass-button"
-              style={{
-                padding: '1.2rem 3.5rem',
-                fontSize: '0.95rem',
-                letterSpacing: '0.25em',
-                background: 'rgba(245,198,214,0.06)',
-                border: '1px solid rgba(245,198,214,0.25)',
-                color: '#f5c6d6',
-                fontStyle: 'italic',
-                textShadow: '0 0 15px rgba(245,198,214,0.3)',
-              }}
+              style={{ padding: '1.2rem 3.5rem', fontSize: '0.95rem', letterSpacing: '0.25em', background: 'rgba(245,198,214,0.06)', border: '1px solid rgba(245,198,214,0.25)', color: '#f5c6d6', fontStyle: 'italic', textShadow: '0 0 15px rgba(245,198,214,0.3)' }}
             >
               come closer… 💗
             </motion.button>

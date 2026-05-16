@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { pageVariants } from './variants';
 import SingleChocolate from '../components/ChocolateItem';
 
 export default function Chocolate() {
   const navigate = useNavigate();
   const [isOpened, setIsOpened] = useState(false);
+
+  const sparkles = useMemo(() => Array.from({ length: 20 }, (_, i) => ({
+    id: `bg-sparkle-${i}`,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    duration: 3 + Math.random() * 4,
+    delay: Math.random() * 5
+  })), []);
 
   return (
     <motion.div
@@ -17,9 +25,7 @@ export default function Chocolate() {
       exit="exit"
       style={{
         backgroundColor: '#0b0613',
-        backgroundImage: `
-          radial-gradient(circle at 50% 40%, #1d0a14 0%, #0b0613 100%)
-        `,
+        backgroundImage: 'radial-gradient(circle at 50% 40%, #1d0a14 0%, #0b0613 100%)',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
@@ -32,7 +38,6 @@ export default function Chocolate() {
     >
       <div className="grain-overlay" style={{ opacity: 0.04, position: 'fixed' }} />
 
-      {/* Cinematic Spotlight */}
       <motion.div
         animate={{
           opacity: isOpened ? 0.15 : 0.08,
@@ -51,7 +56,6 @@ export default function Chocolate() {
         }}
       />
 
-      {/* Dynamic Vignette */}
       <motion.div
         animate={{
           background: isOpened 
@@ -63,25 +67,17 @@ export default function Chocolate() {
         }}
       />
 
-      {/* Background Sparkles */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
-        {[...Array(20)].map((_, i) => (
+        {sparkles.map((s) => (
           <motion.div
-            key={i}
+            key={s.id}
             initial={{ opacity: 0 }}
-            animate={{
-              opacity: [0, 0.3, 0],
-              scale: [0, 1, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 5,
-            }}
+            animate={{ opacity: [0, 0.3, 0], scale: [0, 1, 0] }}
+            transition={{ duration: s.duration, repeat: Infinity, delay: s.delay }}
             style={{
               position: 'absolute',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: s.left,
+              top: s.top,
               width: 2,
               height: 2,
               background: '#f5c6d6',
@@ -92,37 +88,20 @@ export default function Chocolate() {
         ))}
       </div>
 
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         style={{ textAlign: 'center', marginBottom: '2rem', zIndex: 10, position: 'relative' }}
       >
-        <p style={{
-          fontFamily: 'Inter, sans-serif',
-          fontSize: '0.7rem',
-          letterSpacing: '0.4em',
-          textTransform: 'uppercase',
-          color: '#f5c6d6',
-          opacity: 0.3,
-          marginBottom: '0.8rem',
-        }}>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.7rem', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#f5c6d6', opacity: 0.3, marginBottom: '0.8rem' }}>
           a little something
         </p>
-        <h1 style={{
-          fontFamily: "'Playfair Display', serif",
-          fontSize: 'clamp(1.8rem, 6vw, 2.4rem)',
-          fontWeight: '400',
-          color: '#f5c6d6',
-          fontStyle: 'italic',
-          textShadow: '0 0 30px rgba(245,198,214,0.2)',
-        }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.8rem, 6vw, 2.4rem)', fontWeight: '400', color: '#f5c6d6', fontStyle: 'italic', textShadow: '0 0 30px rgba(245,198,214,0.2)' }}>
           for you 🍫
         </h1>
       </motion.div>
 
-      {/* Single chocolate */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9, y: 30 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -132,12 +111,8 @@ export default function Chocolate() {
         <SingleChocolate onDone={() => navigate('/lotus')} onOpen={() => setIsOpened(true)} />
       </motion.div>
 
-      {/* Ambient background glow (Warmth Pulse) */}
       <motion.div
-        animate={{
-          opacity: isOpened ? [0.1, 0.18, 0.1] : [0.06, 0.1, 0.06],
-          scale: isOpened ? [1.1, 1.2, 1.1] : [1, 1.05, 1],
-        }}
+        animate={{ opacity: isOpened ? [0.1, 0.18, 0.1] : [0.06, 0.1, 0.06], scale: isOpened ? [1.1, 1.2, 1.1] : [1, 1.05, 1] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         style={{
           position: 'fixed',
@@ -154,4 +129,3 @@ export default function Chocolate() {
     </motion.div>
   );
 }
-

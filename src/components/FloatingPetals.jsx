@@ -1,85 +1,114 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useEffect, useMemo } from 'react';
 
 const PETAL_COUNT = 24;
 
-const Petal = ({ layer, speedModifier = 1 }) => {
-  const settings = useMemo(() => {
-    switch (layer) {
-      case 'background':
-        return {
-          size: Math.random() * 8 + 6,
-          blur: Math.random() * 2 + 2,
-          opacity: Math.random() * 0.1 + 0.1,
-          duration: (Math.random() * 10 + 20) / speedModifier,
-          delay: Math.random() * 20,
-        };
-      case 'mid':
-        return {
-          size: Math.random() * 12 + 12,
-          blur: Math.random() * 1 + 1,
-          opacity: Math.random() * 0.2 + 0.3,
-          duration: (Math.random() * 6 + 12) / speedModifier,
-          delay: Math.random() * 15,
-        };
-      case 'foreground':
-        return {
-          size: Math.random() * 15 + 25,
-          blur: Math.random() * 0.5,
-          opacity: Math.random() * 0.2 + 0.6,
-          duration: (Math.random() * 4 + 8) / speedModifier,
-          delay: Math.random() * 10,
-        };
-      default:
-        return {};
+export default function FloatingPetals({ count = PETAL_COUNT, speedModifier = 1 }) {
+  const canvasRef = useRef(null);
+  const requestRef = useRef();
+  
+  // Use a smaller count on low-power devices if needed, but for now we optimize the draw
+  const petals = useMemo(() => {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      let layer = 'mid';
+      if (i < count * 0.4) layer = 'background';
+      else if (i > count * 0.8) layer = 'foreground';
+
+      let settings = {};
+      switch (layer) {
+        case 'background':
+          settings = { size: Math.random() * 8 + 6, blur: 4, opacity: 0.15, speed: 0.8 };
+          break;
+        case 'mid':
+          settings = { size: Math.random() * 12 + 12, blur: 2, opacity: 0.35, speed: 1.4 };
+          break;
+        case 'foreground':
+          settings = { size: Math.random() * 15 + 25, blur: 0, opacity: 0.65, speed: 2.2 };
+          break;
+      }
+
+      arr.push({
+        x: Math.random() * 100, // percentage
+        y: Math.random() * 120 - 10, // percentage
+        rotation: Math.random() * 360,
+        rotateSpeed: (Math.random() - 0.5) * 2,
+        drift: (Math.random() - 0.5) * 0.05,
+        ...settings
+      });
     }
-  }, [layer, speedModifier]);
+    return arr;
+  }, [count]);
 
-  const startX = useMemo(() => Math.random() * 100, []);
-  const driftX = useMemo(() => (Math.random() - 0.5) * 30, []);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
 
-  return (
-    <motion.div
-      initial={{ 
-        top: '-15%', 
-        left: `${startX}%`, 
-        opacity: 0, 
-        rotate: 0,
-        scale: layer === 'foreground' ? 0.9 : 1
-      }}
-      animate={{ 
-        top: '115%', 
-        left: `${startX + driftX}%`, 
-        opacity: [0, settings.opacity, settings.opacity, 0],
-        rotate: 360,
-        scale: layer === 'foreground' ? [0.9, 1.1, 0.9] : 1
-      }}
-      transition={{ 
-        duration: settings.duration, 
-        repeat: Infinity, 
-        delay: settings.delay, 
-        ease: "linear",
-        scale: {
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut"
+    const resize = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
+    };
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    const drawPetal = (p, x, y) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.beginPath();
+      
+      // Petal shape: a teardrop / heart half
+      const s = p.size;
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(s / 2, -s / 2, s, s / 4, 0, s);
+      ctx.bezierCurveTo(-s, s / 4, -s / 2, -s / 2, 0, 0);
+      
+      ctx.fillStyle = `rgba(243, 166, 192, ${p.opacity})`;
+      if (p.blur > 0) {
+        ctx.shadowColor = '#f3a6c0';
+        ctx.shadowBlur = p.blur * 2;
+      }
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const animate = (time) => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      
+      petals.forEach(p => {
+        // Update physics
+        p.y += (p.speed * speedModifier * 0.2);
+        p.x += p.drift * speedModifier;
+        p.rotation += p.rotateSpeed * speedModifier;
+
+        // Reset if offscreen
+        if (p.y > 115) {
+          p.y = -15;
+          p.x = Math.random() * 100;
         }
-      }}
-      style={{
-        position: 'absolute',
-        width: `${settings.size}px`,
-        height: `${settings.size}px`,
-        backgroundColor: '#f3a6c0',
-        borderRadius: '50% 0 50% 50%',
-        filter: `blur(${settings.blur}px)`,
-        zIndex: layer === 'background' ? 0 : layer === 'mid' ? 5 : 15,
-        pointerEvents: 'none',
-      }}
-    />
-  );
-};
+        if (p.x < -10) p.x = 110;
+        if (p.x > 110) p.x = -10;
 
-const FloatingPetals = ({ count = PETAL_COUNT, speedModifier = 1 }) => {
+        const screenX = (p.x / 100) * window.innerWidth;
+        const screenY = (p.y / 100) * window.innerHeight;
+        
+        drawPetal(p, screenX, screenY);
+      });
+
+      requestRef.current = requestAnimationFrame(animate);
+    };
+
+    requestRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(requestRef.current);
+    };
+  }, [petals, speedModifier]);
+
   return (
     <div style={{
       position: 'fixed',
@@ -96,15 +125,15 @@ const FloatingPetals = ({ count = PETAL_COUNT, speedModifier = 1 }) => {
         background: 'radial-gradient(circle at center, rgba(42, 15, 31, 0.3) 0%, transparent 70%)',
         zIndex: 0,
       }} />
-
-      {[...Array(count)].map((_, i) => {
-        let layer = 'mid';
-        if (i < count * 0.4) layer = 'background';
-        else if (i > count * 0.8) layer = 'foreground';
-        return <Petal key={i} layer={layer} speedModifier={speedModifier} />;
-      })}
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          willChange: 'transform'
+        }}
+      />
     </div>
   );
-};
-
-export default FloatingPetals;
+}

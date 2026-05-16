@@ -11,7 +11,7 @@ export default function Landing() {
     const rect = e.currentTarget.getBoundingClientRect();
     setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top, id: Date.now() });
     playBgMusic();
-    window.setTimeout(() => navigate('/message'), 430);
+    globalThis.setTimeout(() => navigate('/message'), 430);
   }
 
   return (

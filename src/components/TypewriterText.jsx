@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import PropTypes from 'prop-types';
+import { motion } from 'framer-motion';
 
 /**
  * Cinematic Typewriter - Reveals line by line with emotional pauses
@@ -10,7 +11,9 @@ const TypewriterText = ({
   speed = 40, 
   lineDelay = 800 
 }) => {
-  const lines = Array.isArray(text) ? text : [text];
+  const lines = useMemo(() => (Array.isArray(text) ? text : [text]), [text]);
+  const lineIds = useMemo(() => lines.map((_, i) => `line-${i}-${lines[i].length}`), [lines]);
+  
   const [visibleLines, setVisibleLines] = useState([]);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -62,7 +65,7 @@ const TypewriterText = ({
     <div style={{ position: 'relative' }}>
       {visibleLines.map((line, index) => (
         <motion.p
-          key={index}
+          key={lineIds[index]}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -95,6 +98,13 @@ const TypewriterText = ({
       ))}
     </div>
   );
+};
+
+TypewriterText.propTypes = {
+  text: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]).isRequired,
+  onComplete: PropTypes.func,
+  speed: PropTypes.number,
+  lineDelay: PropTypes.number
 };
 
 export default TypewriterText;
