@@ -134,13 +134,24 @@ export default function CakeCutGame({ onDone }) {
     };
   }, []);
 
+  const rafCakePointerRef = useRef(null);
+  const lastCakePointerRef = useRef(null);
+
   const onCakePointerMove = useCallback((e) => {
     if (!svgRef.current || celebrated) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const dx = ((e.clientX - rect.left) / rect.width) - 0.5;
-    const dy = ((e.clientY - rect.top) / rect.height) - 0.5;
-    cakeRotateXTarget.set(10 - dy * 6);
-    cakeRotateYTarget.set(dx * 7);
+    lastCakePointerRef.current = { clientX: e.clientX, clientY: e.clientY };
+
+    if (!rafCakePointerRef.current) {
+      rafCakePointerRef.current = requestAnimationFrame(() => {
+        rafCakePointerRef.current = null;
+        if (!lastCakePointerRef.current || !svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        const dx = ((lastCakePointerRef.current.clientX - rect.left) / rect.width) - 0.5;
+        const dy = ((lastCakePointerRef.current.clientY - rect.top) / rect.height) - 0.5;
+        cakeRotateXTarget.set(10 - dy * 6);
+        cakeRotateYTarget.set(dx * 7);
+      });
+    }
   }, [cakeRotateXTarget, cakeRotateYTarget, celebrated]);
 
   const onCakePointerLeave = useCallback(() => {
@@ -206,18 +217,39 @@ export default function CakeCutGame({ onDone }) {
     setKnifeShadow({ start: pos, current: pos });
   }, [toSVG]);
 
+  const rafMoveRef = useRef(null);
+  const lastTouchRef = useRef(null);
+
   const onMove = useCallback((e) => {
     if (!drag.active) return;
     e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
-    const pos = toSVG(touch.clientX, touch.clientY);
-    setDrag(prev => ({ ...prev, current: pos }));
-    setKnifeShadow(prev => prev ? { ...prev, current: pos } : null);
-    if (drag.start) {
-      const dx = pos.x - drag.start.x;
-      setFlameLean(Math.max(-5, Math.min(5, dx / 15)));
+    lastTouchRef.current = { clientX: touch.clientX, clientY: touch.clientY };
+
+    if (!rafMoveRef.current) {
+      rafMoveRef.current = requestAnimationFrame(() => {
+        rafMoveRef.current = null;
+        if (!lastTouchRef.current) return;
+        const pos = toSVG(lastTouchRef.current.clientX, lastTouchRef.current.clientY);
+        setDrag(prev => {
+          if (!prev.active) return prev;
+          return { ...prev, current: pos };
+        });
+        setKnifeShadow(prev => prev ? { ...prev, current: pos } : null);
+        if (drag.start) {
+          const dx = pos.x - drag.start.x;
+          setFlameLean(Math.max(-5, Math.min(5, dx / 15)));
+        }
+      });
     }
   }, [drag.active, drag.start, toSVG]);
+
+  useEffect(() => {
+    return () => {
+      if (rafCakePointerRef.current) cancelAnimationFrame(rafCakePointerRef.current);
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
+    };
+  }, []);
 
   const onUp = useCallback((e) => {
     if (!drag.active) return;

@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { playTinyPurr } from './soundManager';
 
 // Uses the EXACT same design language as CuteCat.jsx:
 // - ViewBox 0 0 180 180
@@ -27,6 +28,19 @@ export default function SleepingCat() {
     dx: (i - 1.5) * 22,
     size: 0.55 + Math.random() * 0.3,
   })), []);
+
+  useEffect(() => {
+    let timer = null;
+    function scheduleNext() {
+      const next = 15000 + Math.random() * 45000; // 15s - 60s
+      timer = globalThis.setTimeout(() => {
+        try { playTinyPurr(); } catch (e) { }
+        scheduleNext();
+      }, next);
+    }
+    scheduleNext();
+    return () => { if (timer) globalThis.clearTimeout(timer); };
+  }, []);
 
   return (
     <div style={{
@@ -297,3 +311,5 @@ export default function SleepingCat() {
     </div>
   );
 }
+
+

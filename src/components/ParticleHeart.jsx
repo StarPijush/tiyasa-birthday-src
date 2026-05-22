@@ -60,12 +60,28 @@ export default function ParticleHeart({ onComplete, onHoldChange }) {
       init(r.width, r.height);
     }
     resize();
-    window.addEventListener('resize', resize);
+    
+    let resizeRaf = null;
+    function handleResize() {
+      if (!resizeRaf) {
+        resizeRaf = requestAnimationFrame(() => {
+          resize();
+          resizeRaf = null;
+        });
+      }
+    }
+    window.addEventListener('resize', handleResize, { passive: true });
 
     const ctx = cvs.getContext('2d', { alpha: true });
     let last = performance.now();
 
     function draw(now) {
+      if (document.hidden) {
+        last = performance.now();
+        frameRef.current = requestAnimationFrame(draw);
+        return;
+      }
+
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
       const s = stateRef.current;
@@ -186,7 +202,8 @@ export default function ParticleHeart({ onComplete, onHoldChange }) {
     frameRef.current = requestAnimationFrame(draw);
 
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', handleResize);
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, [init, onComplete]);

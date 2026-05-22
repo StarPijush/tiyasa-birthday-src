@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
 
-export default function Waveform({ bars, active, progress, minimal = false }) {
+const Waveform = React.memo(function Waveform({ bars, active, progress, minimal = false }) {
   return (
     <div className="gpu-layer" style={{ display: 'flex', alignItems: 'center', gap: minimal ? 4 : 3, height: minimal ? 70 : 52, flex: 1 }}>
       {bars.map((height, index) => {
@@ -26,7 +26,7 @@ export default function Waveform({ bars, active, progress, minimal = false }) {
       })}
     </div>
   );
-}
+});
 
 Waveform.propTypes = {
   bars: PropTypes.arrayOf(PropTypes.number).isRequired,
@@ -34,3 +34,5 @@ Waveform.propTypes = {
   progress: PropTypes.number.isRequired,
   minimal: PropTypes.bool
 };
+
+export default Waveform;

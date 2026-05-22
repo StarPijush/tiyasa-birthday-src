@@ -26,10 +26,11 @@ body {
 
 /* Hardware Acceleration Class */
 .gpu-layer {
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  perspective: 1000;
-  will-change: transform, opacity;
+  perspective: 1000px;
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 .page {

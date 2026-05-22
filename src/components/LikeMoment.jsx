@@ -36,9 +36,9 @@ export default function LikeMoment({ item, index, onPop }) {
       }}
     >
       <motion.div
-        animate={{ y: [0, -1.5, 0], boxShadow: ['0 10px 34px rgba(0,0,0,0.16)', '0 12px 42px rgba(245,198,214,0.1)', '0 10px 34px rgba(0,0,0,0.16)'] }}
+        animate={{ y: [0, -1.5, 0] }}
         transition={{ duration: 4 + index * 0.12, repeat: Infinity, ease: 'easeInOut' }}
-        style={shellStyle}
+        style={{ ...shellStyle, boxShadow: '0 10px 34px rgba(0,0,0,0.12)' }}
         className="gpu-layer"
       >
         {item.sticker && (

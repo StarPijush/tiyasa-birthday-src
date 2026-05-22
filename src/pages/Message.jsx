@@ -8,18 +8,18 @@ import LikeMoment from '../components/LikeMoment';
 const REACTIONS = ['🩷', '😭', '✨', '💖', '🌸'];
 
 const LIKES = [
-  { id: 'laugh', text: 'You laugh at the worst moments 😭', style: 'big', sticker: '✨', width: 420, sideNote: 'hm.' },
-  { id: 'mad', text: 'I love how you pretend to be mad for 3 minutes.', style: 'note', tag: 'tiny fact', width: 360, sideNote: 'idiot ❤️' },
-  { id: 'hm', text: "You say 'hm' like it's a full sentence.", style: 'bubble', time: '2:14 AM', width: 330 },
-  { id: 'care', text: 'You care more than you admit.', style: 'small', sticker: '🩷', width: 310, sideNote: 'seen' },
-  { id: 'phone', text: 'You somehow became my favorite notification.', style: 'phone', time: 'now', width: 330 },
-  { id: 'smile', text: 'I still smile when your name pops up.', style: 'big', sticker: '😭', width: 390 },
-  { id: 'sleepy', text: "You're cute when you're sleepy.", style: 'cat', width: 340 },
-  { id: 'eat', text: '“did you eat?”', style: 'tiny', sub: 'and suddenly i feel very seen', width: 270, sideNote: '9:06 PM' },
-  { id: 'silence', text: 'You make silence feel comfortable.', style: 'soft', width: 430 },
-  { id: 'combo', text: 'soft, stubborn, annoying, mine. perfect combo.', style: 'note', tag: 'important research', width: 390 },
-  { id: 'type', text: 'You type, stop, type again... and I wait like an idiot.', style: 'bubble', time: 'typing...', width: 350 },
-  { id: 'cute', text: 'You are very cute. unfortunately this is scientifically proven.', style: 'small', sticker: '💖', width: 360 },
+  { id: 'smile', text: 'You smile and I love it.', style: 'big', sticker: '✨', width: 420, sideNote: 'always' },
+  { id: 'soft-talk', text: 'The way you softly talk with me feels so calm.', style: 'note', tag: 'favorite', width: 380, sideNote: 'so sweet' },
+  { id: 'care', text: 'How much you care about me means everything.', style: 'bubble', time: 'always', width: 360 },
+  { id: 'puchuuu', text: 'I love how you call me puchuuu.', style: 'small', sticker: '💖', width: 340, sideNote: 'cute' },
+  { id: 'baby', text: "I feel like I'm your baby when you're with me.", style: 'cat', width: 350, sideNote: 'safe' },
+  { id: 'thoughtful', text: 'I love how much you think about me.', style: 'note', tag: 'thoughtful', width: 400 },
+  { id: 'pretend-mad', text: 'I love when you pretend to be mad at me.', style: 'tiny', time: 'later', width: 320, sideNote: 'adorable' },
+  { id: 'more-care', text: 'I like how you care more than you admit.', style: 'soft', width: 430 },
+  { id: 'notification', text: 'You are my favorite notification.', style: 'phone', time: 'now', width: 330 },
+  { id: 'name', text: 'I smile whenever I think of you and hear your name.', style: 'big', width: 410, sticker: '🌸' },
+  { id: 'eyes', text: 'Your eyes look very beautiful.', style: 'note', tag: 'true', width: 360 },
+  { id: 'everything', text: 'I like everything about you.', style: 'bubble', time: 'all of it', width: 380 },
 ];
 
 function playPopSound() {

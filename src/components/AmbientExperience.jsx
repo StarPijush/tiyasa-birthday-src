@@ -70,14 +70,42 @@ export default function AmbientExperience() {
     const unsubscribeX = x.on('change', value => root.style.setProperty('--tilt-x', value.toFixed(2)));
     const unsubscribeY = y.on('change', value => root.style.setProperty('--tilt-y', value.toFixed(2)));
 
+    let rafPointer = null;
+    let lastPointer = { clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 };
+    let rafOrientation = null;
+    let lastOrientation = { gamma: 0, beta: 45 };
+    let winWidth = window.innerWidth;
+    let winHeight = window.innerHeight;
+
+    const handleResize = () => {
+      winWidth = window.innerWidth;
+      winHeight = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+
     function handlePointer(e) {
-      rawX.set(((e.clientX / window.innerWidth) - 0.5) * 8);
-      rawY.set(((e.clientY / window.innerHeight) - 0.5) * 8);
+      lastPointer.clientX = e.clientX;
+      lastPointer.clientY = e.clientY;
+      if (!rafPointer) {
+        rafPointer = requestAnimationFrame(() => {
+          rawX.set(((lastPointer.clientX / winWidth) - 0.5) * 8);
+          rawY.set(((lastPointer.clientY / winHeight) - 0.5) * 8);
+          rafPointer = null;
+        });
+      }
     }
 
     function handleOrientation(e) {
-      if (typeof e.gamma === 'number') rawX.set(Math.max(-1, Math.min(1, e.gamma / 20)) * 8);
-      if (typeof e.beta === 'number') rawY.set(Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * 8);
+      if (e.gamma === null || e.beta === null) return;
+      lastOrientation.gamma = e.gamma;
+      lastOrientation.beta = e.beta;
+      if (!rafOrientation) {
+        rafOrientation = requestAnimationFrame(() => {
+          rawX.set(Math.max(-1, Math.min(1, lastOrientation.gamma / 20)) * 8);
+          rawY.set(Math.max(-1, Math.min(1, (lastOrientation.beta - 45) / 30)) * 8);
+          rafOrientation = null;
+        });
+      }
     }
 
     window.addEventListener('pointermove', handlePointer, { passive: true });
@@ -86,8 +114,11 @@ export default function AmbientExperience() {
     return () => {
       unsubscribeX();
       unsubscribeY();
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('pointermove', handlePointer);
       window.removeEventListener('deviceorientation', handleOrientation);
+      if (rafPointer) cancelAnimationFrame(rafPointer);
+      if (rafOrientation) cancelAnimationFrame(rafOrientation);
     };
   }, [rawX, rawY, x, y]);
 

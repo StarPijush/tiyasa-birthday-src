@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
 
@@ -118,14 +118,30 @@ export default function SingleChocolate({ onDone, onOpen }) {
   const rotateX = useTransform(mouseY, [-0.5, 0.5], [10, -10]);
   const rotateY = useTransform(mouseX, [-0.5, 0.5], [-12, 12]);
 
+  const rafMoveRef = useRef(null);
+  const lastMoveRef = useRef(null);
+
   const handleMove = useCallback((e) => {
     if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
+    lastMoveRef.current = { clientX: e.clientX, clientY: e.clientY };
+    if (!rafMoveRef.current) {
+      rafMoveRef.current = requestAnimationFrame(() => {
+        rafMoveRef.current = null;
+        if (!ref.current || !lastMoveRef.current) return;
+        const rect = ref.current.getBoundingClientRect();
+        const x = (lastMoveRef.current.clientX - rect.left) / rect.width - 0.5;
+        const y = (lastMoveRef.current.clientY - rect.top) / rect.height - 0.5;
+        mouseX.set(x);
+        mouseY.set(y);
+      });
+    }
   }, [mouseX, mouseY]);
+
+  useEffect(() => {
+    return () => {
+      if (rafMoveRef.current) cancelAnimationFrame(rafMoveRef.current);
+    };
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
     mouseX.set(0);
