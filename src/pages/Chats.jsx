@@ -105,9 +105,7 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
   }, [unlocked, holding]);
 
   const locked = note.hold && !unlocked;
-  const currentLine = active && note.script
-    ? [...note.script].reverse().find(line => progress >= line.at)?.text
-    : '';
+  const locked = note.hold && !unlocked;
 
   return (
     <motion.article
@@ -276,19 +274,7 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
           </div>
         )}
 
-        <AnimatePresence mode="wait">
-          {currentLine && (
-            <motion.p
-              key={currentLine}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 0.85, y: 0 }}
-              exit={{ opacity: 0 }}
-              style={{ marginTop: 12, color: 'rgba(255,238,245,0.7)', fontSize: '0.85rem', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.8rem', borderRadius: 12 }}
-            >
-              “{currentLine}”
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {/* Reveal text removed to keep cards visually quiet */}
       </div>
     </motion.article>
   );
