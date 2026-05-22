@@ -105,7 +105,6 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
   }, [unlocked, holding]);
 
   const locked = note.hold && !unlocked;
-  const locked = note.hold && !unlocked;
 
   return (
     <motion.article
