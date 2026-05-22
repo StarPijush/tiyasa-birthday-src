@@ -43,8 +43,7 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
   const [holding, setHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [realDuration, setRealDuration] = useState(durationCache.get(note.id) || null);
-  const holdIntervalRef = useRef(null);
-  const holdTimeoutRef = useRef(null);
+  const holdRafRef = useRef(null);
 
   useEffect(() => {
     if (durationCache.has(note.id)) {
@@ -53,52 +52,70 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
     }
 
     let isMounted = true;
-    const audio = new Audio(note.audio);
-    audio.preload = 'metadata';
+    let idleCb = null;
+    let audio = null;
     
     const onLoadedMetadata = () => {
-      if (isMounted) {
+      if (isMounted && audio) {
         durationCache.set(note.id, audio.duration);
         setRealDuration(audio.duration);
       }
     };
     
-    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    const initAudio = () => {
+      if (!isMounted) return;
+      audio = new Audio(note.audio);
+      audio.preload = 'metadata';
+      audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    };
+
+    if (globalThis.requestIdleCallback) {
+      idleCb = globalThis.requestIdleCallback(initAudio);
+    } else {
+      idleCb = globalThis.setTimeout(initAudio, 200 + index * 50);
+    }
     
     return () => {
       isMounted = false;
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.src = '';
+      if (idleCb) {
+        if (globalThis.requestIdleCallback) globalThis.cancelIdleCallback(idleCb);
+        else globalThis.clearTimeout(idleCb);
+      }
+      if (audio) {
+        audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+        audio.src = '';
+      }
     };
-  }, [note.id, note.audio]);
+  }, [note.id, note.audio, index]);
 
   useEffect(() => () => {
-    globalThis.clearInterval(holdIntervalRef.current);
-    globalThis.clearTimeout(holdTimeoutRef.current);
+    if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current);
   }, []);
 
   const startHold = useCallback(() => {
     if (!note.hold || unlocked) return;
     setHolding(true);
     setHoldProgress(0);
-    globalThis.clearInterval(holdIntervalRef.current);
-    globalThis.clearTimeout(holdTimeoutRef.current);
-    const started = Date.now();
-    holdIntervalRef.current = globalThis.setInterval(() => {
-      setHoldProgress(Math.min(1, (Date.now() - started) / 850));
-    }, 16);
-    holdTimeoutRef.current = globalThis.setTimeout(() => {
-      globalThis.clearInterval(holdIntervalRef.current);
-      setHoldProgress(1);
-      setHolding(false);
-      onHoldUnlock(note.id);
-    }, 850);
+    if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current);
+    
+    const started = performance.now();
+    
+    const update = (now) => {
+      const p = Math.min(1, (now - started) / 850);
+      setHoldProgress(p);
+      if (p < 1) {
+        holdRafRef.current = requestAnimationFrame(update);
+      } else {
+        setHolding(false);
+        onHoldUnlock(note.id);
+      }
+    };
+    holdRafRef.current = requestAnimationFrame(update);
   }, [note.hold, note.id, unlocked, onHoldUnlock]);
 
   const stopHold = useCallback(() => {
     if (!unlocked && holding) {
-      globalThis.clearInterval(holdIntervalRef.current);
-      globalThis.clearTimeout(holdTimeoutRef.current);
+      if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current);
       setHoldProgress(0);
     }
     setHolding(false);
@@ -194,6 +211,7 @@ const VoiceNoteCard = React.memo(function VoiceNoteCard({
                 overflow: 'hidden',
                 cursor: 'pointer',
                 outline: 'none',
+                touchAction: 'none', // Prevent 300ms delay & browser gestures
                 zIndex: 1, // Above breathing glow
               }}
             >

@@ -9,7 +9,7 @@ export default function ParticleHeart({ onComplete, onHoldChange }) {
   const frameRef = useRef(null);
   const stateRef = useRef({
     holding: false, progress: 0, formed: false,
-    particles: [], ambient: [], ripples: [],
+    pData: null, aData: null, ripples: [],
     time: 0, done: false, w: 0, h: 0
   });
 
@@ -19,31 +19,36 @@ export default function ParticleHeart({ onComplete, onHoldChange }) {
     const cx = w / 2, cy = h * 0.4;
     const scale = Math.min(w, h) * 0.032;
 
-    s.particles = [];
+    s.pData = new Float32Array(160 * 12);
     for (let i = 0; i < 160; i++) {
       const t = (i / 160) * Math.PI * 2 + (Math.random() - 0.5) * 0.2;
       const fill = i < 90 ? 0.88 + Math.random() * 0.12 : 0.15 + Math.random() * 0.7;
-      s.particles.push({
-        x: Math.random() * w, y: Math.random() * h,
-        scX: Math.random() * w, scY: Math.random() * h,
-        hX: cx + heartX(t) * scale * fill,
-        hY: cy + heartY(t) * scale * fill,
-        sz: 1.2 + Math.random() * 2.2,
-        op: 0.1 + Math.random() * 0.1,
-        baseOp: 0.25 + Math.random() * 0.4,
-        ph: Math.random() * Math.PI * 2,
-        vx: (Math.random() - 0.5) * 0.45,
-        vy: (Math.random() - 0.5) * 0.45,
-      });
+      
+      const pIdx = i * 12;
+      s.pData[pIdx + 0] = Math.random() * w; // x
+      s.pData[pIdx + 1] = Math.random() * h; // y
+      s.pData[pIdx + 2] = Math.random() * w; // scX
+      s.pData[pIdx + 3] = Math.random() * h; // scY
+      s.pData[pIdx + 4] = cx + heartX(t) * scale * fill; // hX
+      s.pData[pIdx + 5] = cy + heartY(t) * scale * fill; // hY
+      s.pData[pIdx + 6] = 1.2 + Math.random() * 2.2; // sz
+      s.pData[pIdx + 7] = 0.1 + Math.random() * 0.1; // op
+      s.pData[pIdx + 8] = 0.25 + Math.random() * 0.4; // baseOp
+      s.pData[pIdx + 9] = Math.random() * Math.PI * 2; // ph
+      s.pData[pIdx + 10] = (Math.random() - 0.5) * 0.45; // vx
+      s.pData[pIdx + 11] = (Math.random() - 0.5) * 0.45; // vy
     }
-    s.ambient = [];
+    
+    s.aData = new Float32Array(40 * 8);
     for (let i = 0; i < 40; i++) {
-      s.ambient.push({
-        x: Math.random() * w, y: Math.random() * h,
-        sz: 0.8 + Math.random() * 1.5, op: 0.06 + Math.random() * 0.1,
-        vx: (Math.random() - 0.5) * 0.18, vy: (Math.random() - 0.5) * 0.15,
-        ph: Math.random() * Math.PI * 2
-      });
+      const aIdx = i * 8;
+      s.aData[aIdx + 0] = Math.random() * w; // x
+      s.aData[aIdx + 1] = Math.random() * h; // y
+      s.aData[aIdx + 2] = 0.8 + Math.random() * 1.5; // sz
+      s.aData[aIdx + 3] = 0.06 + Math.random() * 0.1; // op
+      s.aData[aIdx + 4] = (Math.random() - 0.5) * 0.18; // vx
+      s.aData[aIdx + 5] = (Math.random() - 0.5) * 0.15; // vy
+      s.aData[aIdx + 6] = Math.random() * Math.PI * 2; // ph
     }
     s.ripples = [];
   }, []);
@@ -138,61 +143,94 @@ export default function ParticleHeart({ onComplete, onHoldChange }) {
       // Instead, we use a glow brush or just additive blending
       ctx.globalCompositeOperation = 'lighter';
       
-      for (const p of s.particles) {
+      for (let i = 0; i < 160; i++) {
+        const pIdx = i * 12;
+        let px = s.pData[pIdx + 0];
+        let py = s.pData[pIdx + 1];
+        const scX = s.pData[pIdx + 2];
+        const scY = s.pData[pIdx + 3];
+        const hX = s.pData[pIdx + 4];
+        const hY = s.pData[pIdx + 5];
+        const sz = s.pData[pIdx + 6];
+        let op = s.pData[pIdx + 7];
+        const baseOp = s.pData[pIdx + 8];
+        const ph = s.pData[pIdx + 9];
+        let vx = s.pData[pIdx + 10];
+        let vy = s.pData[pIdx + 11];
+
         if (s.formed) {
-          const ox = Math.sin(s.time * 0.8 + p.ph) * 3;
-          const oy = Math.cos(s.time * 0.6 + p.ph) * 3;
-          const tx = cx + (p.hX - cx) * breath + ox;
-          const ty = cy + (p.hY - cy) * breath + oy;
-          p.x = lerp(p.x, tx, dt * 4);
-          p.y = lerp(p.y, ty, dt * 4);
-          p.op = lerp(p.op, p.baseOp + 0.3, dt * 2.5);
+          const ox = Math.sin(s.time * 0.8 + ph) * 3;
+          const oy = Math.cos(s.time * 0.6 + ph) * 3;
+          const tx = cx + (hX - cx) * breath + ox;
+          const ty = cy + (hY - cy) * breath + oy;
+          px = lerp(px, tx, dt * 4);
+          py = lerp(py, ty, dt * 4);
+          op = lerp(op, baseOp + 0.3, dt * 2.5);
         } else if (s.progress > 0) {
           const ease = s.progress * s.progress * (3 - 2 * s.progress);
-          const tx = lerp(p.scX, p.hX, ease);
-          const ty = lerp(p.scY, p.hY, ease);
-          p.x = lerp(p.x, tx, dt * (2 + s.progress * 5));
-          p.y = lerp(p.y, ty, dt * (2 + s.progress * 5));
-          p.op = lerp(p.op, 0.12 + s.progress * 0.5, dt * 2.5);
+          const tx = lerp(scX, hX, ease);
+          const ty = lerp(scY, hY, ease);
+          px = lerp(px, tx, dt * (2 + s.progress * 5));
+          py = lerp(py, ty, dt * (2 + s.progress * 5));
+          op = lerp(op, 0.12 + s.progress * 0.5, dt * 2.5);
         } else {
-          p.x += p.vx + Math.sin(s.time * 0.4 + p.ph) * 0.1;
-          p.y += p.vy + Math.cos(s.time * 0.3 + p.ph) * 0.1;
-          if (p.x < -30) p.x = w + 30;
-          if (p.x > w + 30) p.x = -30;
-          if (p.y < -30) p.y = h + 30;
-          if (p.y > h + 30) p.y = -30;
-          p.vx += (cx - p.x) * 0.00003;
-          p.vy += (cy - p.y) * 0.00003;
-          p.op = 0.08 + Math.sin(s.time * 1 + p.ph) * 0.04;
+          px += vx + Math.sin(s.time * 0.4 + ph) * 0.1;
+          py += vy + Math.cos(s.time * 0.3 + ph) * 0.1;
+          if (px < -30) px = w + 30;
+          if (px > w + 30) px = -30;
+          if (py < -30) py = h + 30;
+          if (py > h + 30) py = -30;
+          vx += (cx - px) * 0.00003;
+          vy += (cy - py) * 0.00003;
+          op = 0.08 + Math.sin(s.time * 1 + ph) * 0.04;
         }
 
-        ctx.fillStyle = `rgba(245,198,214,${p.op})`;
+        s.pData[pIdx + 0] = px;
+        s.pData[pIdx + 1] = py;
+        s.pData[pIdx + 7] = op;
+        s.pData[pIdx + 10] = vx;
+        s.pData[pIdx + 11] = vy;
+
+        ctx.fillStyle = `rgba(245,198,214,${op})`;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.sz, 0, Math.PI * 2);
+        ctx.arc(px, py, sz, 0, Math.PI * 2);
         ctx.fill();
         
         // Subtle micro-glow per particle (much cheaper than shadowBlur)
-        if (p.op > 0.4) {
-          ctx.fillStyle = `rgba(245,198,214,${p.op * 0.2})`;
+        if (op > 0.4) {
+          ctx.fillStyle = `rgba(245,198,214,${op * 0.2})`;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, p.sz * 2.5, 0, Math.PI * 2);
+          ctx.arc(px, py, sz * 2.5, 0, Math.PI * 2);
           ctx.fill();
         }
       }
 
       // Ambient (Batched)
       ctx.globalCompositeOperation = 'source-over';
-      for (const a of s.ambient) {
-        a.x += a.vx + Math.sin(s.time * 0.25 + a.ph) * 0.05;
-        a.y += a.vy + Math.cos(s.time * 0.2 + a.ph) * 0.05;
-        if (a.x < -40) a.x = w + 40;
-        if (a.x > w + 40) a.x = -40;
-        if (a.y < -40) a.y = h + 40;
-        if (a.y > h + 40) a.y = -40;
-        const al = a.op * (0.7 + Math.sin(s.time * 0.5 + a.ph) * 0.3);
+      for (let i = 0; i < 40; i++) {
+        const aIdx = i * 8;
+        let ax = s.aData[aIdx + 0];
+        let ay = s.aData[aIdx + 1];
+        const sz = s.aData[aIdx + 2];
+        const op = s.aData[aIdx + 3];
+        const vx = s.aData[aIdx + 4];
+        const vy = s.aData[aIdx + 5];
+        const ph = s.aData[aIdx + 6];
+
+        ax += vx + Math.sin(s.time * 0.25 + ph) * 0.05;
+        ay += vy + Math.cos(s.time * 0.2 + ph) * 0.05;
+        if (ax < -40) ax = w + 40;
+        if (ax > w + 40) ax = -40;
+        if (ay < -40) ay = h + 40;
+        if (ay > h + 40) ay = -40;
+        
+        s.aData[aIdx + 0] = ax;
+        s.aData[aIdx + 1] = ay;
+
+        const al = op * (0.7 + Math.sin(s.time * 0.5 + ph) * 0.3);
         ctx.fillStyle = `rgba(245,198,214,${al})`;
         ctx.beginPath();
-        ctx.arc(a.x, a.y, a.sz, 0, Math.PI * 2);
+        ctx.arc(ax, ay, sz, 0, Math.PI * 2);
         ctx.fill();
       }
 
